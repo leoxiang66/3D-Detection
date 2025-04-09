@@ -20,7 +20,7 @@ def make_cuda_ext(name, module, sources):
 
 setup(
     name="det3d",
-    version="0.0.6",
+    version="0.0.7",
     author="Tao Xiang",
     author_email="xiang.tao@outlook.de",
     description="A package of 3D object detection models",
