@@ -2,7 +2,7 @@
 Copyright [2020] [Shaoshuai.Shi] SPDX-License-Identifier: Apache-2.0(http://www.apache.org/licenses/LICENSE-2.0)
 """
 import torch
-from det3d.ops.iou3d_nms import iou3d_nms_utils
+from ...ops.iou3d_nms import iou3d_nms_utils
 
 def class_agnostic_nms(box_scores, box_preds, nms_config, score_thresh=None):
     src_box_scores = box_scores
