@@ -2,7 +2,7 @@ import copy
 import numpy as np
 import torch
 from collections import defaultdict
-from ..types.PointCloud import PointCloud
+from ..types.pointcloud import PointCloud
 from ..utils import move_to_cpu, load_data_to_gpu
 
 def mask_points_out_of_range(pc, pc_range):
