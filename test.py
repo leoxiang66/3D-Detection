@@ -1,7 +1,7 @@
 import numpy as np
 from det3d.models.centerpoint import CenterPointModel
-from det3d.types.PointCloud import PointCloud
-from det3d.interface.infer import infer_pointcloud_detection
+from det3d.types.pointcloud import PointCloud
+from det3d.models.centerpoint.infer import infer_pointcloud_detection
 import torch
 
 # 假设你已经有一个点云
