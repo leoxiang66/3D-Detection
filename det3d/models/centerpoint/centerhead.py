@@ -54,6 +54,7 @@ class CenterHead(nn.Module):
                  class_names, 
                  point_cloud_range, 
                  voxel_size,
+                 feature_map_stride,
                  predict_boxes_when_training=True):
         super().__init__()
         self.num_class = num_class
@@ -74,7 +75,7 @@ class CenterHead(nn.Module):
             }
         }
 
-        self.feature_map_stride = 1
+        self.feature_map_stride = feature_map_stride
 
         self.POST_PROCESSING = {
             'SCORE_THRESH': [0.2, 0.3, 0.3],
@@ -95,6 +96,7 @@ class CenterHead(nn.Module):
             cur_class_id_mapping = torch.from_numpy(np.array(
                 [self.class_names.index(x) for x in cur_class_names if x in class_names]
             )).cuda()
+            
             self.class_id_mapping_each_head.append(cur_class_id_mapping)
         
         total_classes = sum([len(x) for x in self.class_names_each_head])
@@ -255,6 +257,31 @@ class CenterHead(nn.Module):
             ret_dict[k]['pred_boxes'] = torch.cat(ret_dict[k]['pred_boxes'], dim=0)
             ret_dict[k]['pred_scores'] = torch.cat(ret_dict[k]['pred_scores'], dim=0)
             ret_dict[k]['pred_labels'] = torch.cat(ret_dict[k]['pred_labels'], dim=0) + 1
+            
+            
+            # ----------------------------
+            # 新增部分：对所有 head 的 raw 预测数据求平均值进行聚合
+            # 将每个 head 的原始预测数据（未经过后处理）取平均
+            # 注意：这里 pred_dicts 是一个列表，每个元素来自一个 head，且每个元素内所有 key 的张量形状
+            # 包含 batch 维度（一般形状为 (B, ... )），我们在 batch 维度上取平均
+            agg_hm = torch.mean(torch.stack([pred['hm'] for pred in pred_dicts], dim=0), dim=0)
+            agg_center = torch.mean(torch.stack([pred['center'] for pred in pred_dicts], dim=0), dim=0)
+            agg_center_z = torch.mean(torch.stack([pred['center_z'] for pred in pred_dicts], dim=0), dim=0)
+            agg_dim = torch.mean(torch.stack([pred['dim'] for pred in pred_dicts], dim=0), dim=0)
+            agg_rot = torch.mean(torch.stack([pred['rot'] for pred in pred_dicts], dim=0), dim=0)
+            if 'vel' in self.separate_head_cfg['HEAD_ORDER']:
+                agg_vel = torch.mean(torch.stack([pred['vel'] for pred in pred_dicts], dim=0), dim=0)
+
+            # 将聚合得到的 raw 预测数据按 batch 分配到 ret_dict 中
+            for k in range(batch_size):
+                ret_dict[k]['raw_hm'] = agg_hm[k]        # shape: (C, H, W)
+                ret_dict[k]['raw_center'] = agg_center[k]  # shape: (H*W,?)或其它结构，取决于网络设计
+                ret_dict[k]['raw_center_z'] = agg_center_z[k]
+                ret_dict[k]['raw_dim'] = agg_dim[k]
+                ret_dict[k]['raw_rot'] = agg_rot[k]
+                if 'vel' in self.separate_head_cfg['HEAD_ORDER']:
+                    ret_dict[k]['raw_vel'] = agg_vel[k]
+            # ----------------------------
 
         return ret_dict
 

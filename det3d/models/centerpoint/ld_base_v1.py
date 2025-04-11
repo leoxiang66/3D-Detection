@@ -10,16 +10,17 @@ from .resfpn import ResBEVBackboneConcat
 from .centerhead import CenterHead
 
 class LD_base(nn.Module):
-    def __init__(self):
+    def __init__(self, pc_range:list = None, voxel_size:list = None,feature_map_stride=1):
         super(LD_base, self).__init__()
-        self.voxel_size = [0.2, 0.2, 0.2]
-        self.point_cloud_range = [0, -44.8, -2, 224, 44.8, 4] 
+        self.voxel_size = voxel_size or [0.2, 0.2, 0.2] 
+        self.point_cloud_range = pc_range or [0, -44.8, -2, 224, 44.8, 4] 
         self.point_to_bev = BoolMap(self.point_cloud_range, voxel_size=self.voxel_size)
         self.backbone = ResBEVBackboneConcat(30)
         self.head = CenterHead(input_channels=128, 
                                num_class=3, 
                                class_names=['Vehicle', 'Pedestrian', 'Cyclist'], 
-                               point_cloud_range=self.point_cloud_range, 
+                               point_cloud_range=self.point_cloud_range,
+                               feature_map_stride=feature_map_stride,
                                voxel_size=self.voxel_size)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

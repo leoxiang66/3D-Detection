@@ -36,23 +36,29 @@ class BoolMap(nn.Module):
 
     def forward(self, batch_dict):
         """
-        Args:
-            data_dict:
-                points: (num_points, 1+4)
-
-        Returns:
-            batch_dict:
-                batch_dict['spatial_features'] = spatial_features (B,C,H,W)
-
+        将点云数据转换到 BEV 图像中。
         """
         pc_lidar = batch_dict['points'].clone() 
-
-        bev_img = torch.cuda.BoolTensor(batch_dict['batch_size'],self.BEV_C,self.BEV_H,self.BEV_W).fill_(0)
-        pc_lidar[:,1]=((pc_lidar[:,1]-self.m_x_min)/self.DX)
-        pc_lidar[:,2]=((pc_lidar[:,2]-self.m_y_min)/self.DY)
-        pc_lidar[:,3]=((pc_lidar[:,3]-self.m_z_min)/self.DZ)
-        pc_lidar = pc_lidar.trunc().long()
-        bev_img[pc_lidar[:,0], pc_lidar[:,3], pc_lidar[:,2], pc_lidar[:,1]] = 1
+        # 创建 BEV tensor
+        bev_img = torch.cuda.BoolTensor(
+            batch_dict['batch_size'], self.BEV_C, self.BEV_H, self.BEV_W
+        ).fill_(0)
+        
+        # 将点云 (x, y, z) 转换成 BEV 中的索引（浮点数）
+        pc_lidar[:, 1] = ((pc_lidar[:, 1] - self.m_x_min) / self.DX)
+        pc_lidar[:, 2] = ((pc_lidar[:, 2] - self.m_y_min) / self.DY)
+        pc_lidar[:, 3] = ((pc_lidar[:, 3] - self.m_z_min) / self.DZ)
+        
+        # 对 x, y, z 的映射结果同时做下界和上界 clmap
+        pc_lidar[:,1] = pc_lidar[:,1].clamp(min=0, max=self.BEV_W - 1)
+        pc_lidar[:,2] = pc_lidar[:,2].clamp(min=0, max=self.BEV_H - 1)
+        pc_lidar[:,3] = pc_lidar[:,3].clamp(min=0, max=self.BEV_C - 1)
+        
+        # 使用 floor 转换成整数索引
+        pc_lidar = pc_lidar.floor().long()
+        
+        # 利用索引填充 BEV 图像
+        bev_img[pc_lidar[:, 0], pc_lidar[:, 3], pc_lidar[:, 2], pc_lidar[:, 1]] = 1
         bev_img = bev_img.float() 
         batch_dict['spatial_features'] = bev_img
 

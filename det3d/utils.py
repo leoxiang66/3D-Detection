@@ -13,6 +13,19 @@ def move_to_cpu(item):
         return item
 
 
+def print_dict_tensors_size(tensor_dict):
+    if isinstance(tensor_dict, dict):
+        for k,v in tensor_dict.items():
+            if isinstance(v,torch.Tensor):
+                print(f'Size of {k}: {list(v.size())}')
+            elif isinstance(v,np.ndarray):
+                print(f'Size of {k}: {list(v.shape)}')
+    elif isinstance(tensor_dict,torch.Tensor):
+        print(f'Size of the tensor: {list(tensor_dict.size())}')
+    
+    elif isinstance(tensor_dict,np.ndarray):
+        print(f'Size of the ndarray: {list(tensor_dict.shape)}')
+
 def move_to_gpu(item):
     if isinstance(item, torch.Tensor):
         return item.float().cuda()
